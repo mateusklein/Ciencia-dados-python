@@ -4,14 +4,19 @@ LIM_DIARIO = 3
 LIM_SAQUE = 500        
 
 def deposito(valor_deposito, extrato):
+    print("\n---------------------------------")
+    print("\nREALIZANDO OPERAÇÃO DE DEPOSITO\n")
     global total_conta
     extrato.append(valor_deposito)
     total_conta += valor_deposito
+    print("\nDEPOSITO REALIZADO COM SUCESSO!")
+    print("\n---------------------------------")
 
 def saque(valor_saque, extrato):
     global total_conta
     global total_saques
-    print("\nREALIZANDO OPERAÇÃO DE SAQUE")
+    print("\n---------------------------------")
+    print("\nREALIZANDO OPERAÇÃO DE SAQUE\n")
     if(total_saques<LIM_DIARIO):
         if(valor_saque<=LIM_SAQUE):
             if(total_conta>=valor_saque):
@@ -31,28 +36,31 @@ def saque(valor_saque, extrato):
     print("\n---------------------------------")
 
 def mostra_extrato(extrato):
+    print("\n------------------------------------------------")
+    print("\nEXTRATO:\n")
     global total_conta
     i=0
     j=1
     k=1
-    print("\n\nEXTRATO:\n\n")
     while(i<len(extrato)):
         if(extrato[i]>=0):
-            print("\nDEPÓSITO NÚMERO ", j, ": ",extrato[i])
+            print(f"\nDEPÓSITO NÚMERO {j}: R$ {extrato[i]:.2f}")
             j+=1
         else:
-            print("\nSAQUE NÚMERO ", k, ": ",extrato[i])
+            print(f"\nSAQUE NÚMERO {k}: R$ {extrato[i]:.2f}")
             k+=1
         i+=1
-    print("SALDO ATUAL DA CONTA: ", total_conta)
-    print("\n\n------------------------------------------------")
+    print(f"\n\nSALDO ATUAL DA CONTA: R$ {total_conta:.2f}")
+    print("\n------------------------------------------------")
 
 
 def main():
     opcao="d"
     extrato = []
     while(opcao!="Q"):
-        print("\n\n\nOPCAO Q = SAIR\nOPCAO D = DEPOSITO\nOPCAO S = SAQUE\nOPCAO E = EXTRATO")
+        print("\n\n#####################")
+        print("MENU:\nOPCAO Q = SAIR\nOPCAO D = DEPOSITO\nOPCAO S = SAQUE\nOPCAO E = EXTRATO")
+        print("#####################\n")
         opcao = input("Digite a opcao desejada:\n")
         opcao = opcao.upper()
         while(opcao!="Q" and opcao!="D" and opcao!="S" and opcao!="E"):
