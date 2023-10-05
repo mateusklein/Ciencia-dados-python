@@ -36,7 +36,6 @@ select concat(e.Fname, " ", e.Lname) as empregados_com_dependentes from employee
 select concat(e.Fname, " ", e.Lname) as empregados_sem_dependentes from employee as e
 	where not exists (select * from dependent as d 
 					where E.Ssn = d.Essn);
-<<<<<<< HEAD
 
 -- clausulas de ordenação
 select * from employee order by Fname, Lname;
@@ -135,5 +134,3 @@ select * from dependent;
 select * from employee left outer join dependent on Ssn=Essn;
 
 select * from employee right outer join dependent on Ssn=Essn;
-=======
->>>>>>> 8fcd2321d6a2f4cd3e1d1b66118759fbcf8597f8

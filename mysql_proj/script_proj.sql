@@ -8,12 +8,21 @@ create table clients(
 	Fname varchar(10),
 	Minit char(3),
     Lname varchar(20),
-    CPF char(11) not null,
+    cpf VARCHAR(11),
+    cnpj VARCHAR(14),
     Address varchar(100),
     Bdate date,
-    constraint unique_cpf_client unique(CPF)
+    constraint unique_cpf_client unique(CPF),
+    tipo ENUM("PF","PJ") NOT NULL
 );
 alter table clients auto_increment=1;
+ALTER TABLE clients
+ADD CONSTRAINT check_tipo_conta
+CHECK (
+    (tipo = 'PF' AND cpf IS NOT NULL AND cnpj IS NULL) OR
+    (tipo = 'PJ' AND cnpj IS NOT NULL AND cpf IS NULL)
+);
+select * from clients;
 desc clients;
 
 -- criar tabela produto
@@ -37,11 +46,26 @@ create table orders(
 	idOrderClient int,
 	orderStatus enum("Cancelado","Confirmado","Em processamento") default "Em Processamento",
     orderDescription varchar(255),
-    sendVAlue float default 0, 
-    paymentCash bool default false,
+    tipo_pgto ENUM("BOLETO", "PIX", "CARTAO", "DOIS CARTOES") not null default "BOLETO",
+    valor_total float default 0,
+    valor1 int,
+    valor2 int,
     constraint fk_orders_client foreign key (idOrderClient) references clients(idClient)
 );
+ALTER TABLE orders
+ADD CONSTRAINT check_tipo_pgto
+CHECK (
+    (tipo_pgto = 'DOIS CARTOES' AND valor1 IS NOT NULL AND valor2 IS NOT NULL) OR
+    ((tipo_pgto = 'PIX' OR tipo_pgto = 'BOLETO' OR tipo_pgto = 'CARTAO') AND (valor_total=valor1) IS NOT NULL AND valor2 IS NULL)
+);
 desc orders;
+
+create table entrega(
+	id_entrega int,
+	cod_entrega varchar(20) primary key,
+    status_entrega varchar(30),
+    constraint fk_entrega_orders foreign key (id_entrega) references orders(idOrder)
+);
 
 -- criar tabela estoque
 create table productStorage(
@@ -121,13 +145,13 @@ use information_schema;
 desc table_constraints;
 
 select * from referential_constraints where constraint_schema = "ecommerce";
-insert into clients (Fname, Minit, Lname, CPF, Address)
-	values ("Maria", "M", "Silva", 12346789011, "Rua silva de prata 29, carangolas - Cidade das flores"),
-			("Mateus", "O", "Pimentel", 11223321233, "Av paulista 2, sao paulo - SP"),
-            ("Ricardo", "F", "Silva", 55564323412, "Av jorginho 223, maringa - Parana"),
-            ("Julia", "S", "Franca", 09844422313, "Rua estados unidos 22, sao paulo - SP"),
-            ("Roberta", "G", "Assis", 14455676512, "Estrada sei la 2223, pirituba - Cidade das flores"),
-            ("Isabela", "M", "Cruz", 35409875412, "Rua exemplo 43, carangolas - Cidade das flores");
+insert into clients (Fname, Minit, Lname, CPF, CNPJ, Address, tipo)
+	values ("Maria", "M", "Silva", 12346789011, null, "Rua silva de prata 29, carangolas - Cidade das flores", "PF"),
+			("Mateus", "O", "Pimentel", 11223321233, null, "Av paulista 2, sao paulo - SP", "PF"),
+            ("Ricardo", "F", "Silva", null, 55564323412110, "Av jorginho 223, maringa - Parana", "PJ"),
+            ("Julia", "S", "Franca", null, 09844422313190, "Rua estados unidos 22, sao paulo - SP", "PJ"),
+            ("Roberta", "G", "Assis", 14455676512, null, "Estrada sei la 2223, pirituba - Cidade das flores", "PF"),
+            ("Isabela", "M", "Cruz", 35409875412, null, "Rua exemplo 43, carangolas - Cidade das flores", "PF");
 select * from clients;
 
 insert into product (Pname, classification_kids, category, avaliacao, size)
@@ -138,17 +162,24 @@ insert into product (Pname, classification_kids, category, avaliacao, size)
             ("Sofa retratil", false, "Moveis", 3, "3x57x80");
 select * from product;
             
-insert into orders (idOrderClient, orderStatus, orderDescription, sendValue, paymentCash)
-	values (1, null, "compra via aplicativo", null, 1),
-			(2, null, "compra via aplicativo", 50, 0),
-            (3, "Confirmado", null, null, 1),
-            (4, null, "compra via web site", 150, 0);
+insert into orders (idOrderClient, orderStatus, orderDescription, tipo_pgto, valor_total, valor1, valor2)
+	values (1, null, "compra via aplicativo", "CARTAO", 150, 150, NULL),
+			(2, null, "compra via aplicativo", "DOIS CARTOES", 200, 80, 120),
+            (3, "Confirmado", null, "BOLETO", 50, 50, NULL),
+            (4, null, "compra via web site", "PIX", 150, 150, NULL);
 select * from orders;
 
+insert into entrega (id_entrega, cod_entrega, status_entrega)
+	values(1, "DD12345BR", "CHEGANDO AO DESTINATARIO"),
+		  (2, "AB12550BR", "SAINDO DO ESTOQUE"),
+          (3, "BA14345BR", "NOTA GERADA"),
+          (4, "CD12845BR", "EM TRANSITO");
+select * from entrega;
+
 insert into productOrder (idPOproduct, idOorder, poQuantity, poStatus)
-	values 	(6,1,2,null),
-			(7,1,1,null),
-            (8,2,1,null);
+	values 	(1,1,2,null),
+			(2,1,1,null),
+            (3,2,1,null);
 select * from productOrder;
 
 insert into productStorage (storageLocation, quantity)
@@ -161,8 +192,9 @@ insert into productStorage (storageLocation, quantity)
 select * from productStorage;
 
 insert into storageLocation (idLproduct, idLstorage, location)
-	values (6,2,"RJ"),
-		   (7,6,"GO");
+	values (1,2,"RJ"),
+		   (2,6,"GO");
+select * from storageLocation;
            
 insert into supplier (socialName, CNPJ, contact)
 	values ("Almeida e filhos", 2345667999190, "1222223333"),
@@ -171,11 +203,11 @@ insert into supplier (socialName, CNPJ, contact)
 select * from supplier;
 
 insert into productSupplier (idPsSupplier, idPsProduct, quantity)
-	values (1,6,500),
-		   (1,7,400),
-           (2,8,633),
-           (3,7,5),
-           (2,6,10);
+	values (1,1,500),
+		   (1,2,400),
+           (2,3,633),
+           (3,3,5),
+           (2,2,10);
 select * from productSupplier;
 
 insert into seller (SocialName, AbstName, CNPJ, CPF, location, contact)
@@ -185,20 +217,6 @@ insert into seller (SocialName, AbstName, CNPJ, CPF, location, contact)
 select * from seller;
 
 insert into productSeller (idPseller, idProduct, prodQuantity)
-	values (7,6,80),
-		   (8,7,10);
+	values (1,1,80),
+		   (2,2,10);
 select * from productSeller;
-
-select count(*) from clients;
-select * from clients c, orders o where c.idClient=idOrderClient;
-
-select concat(Fname, " ", Lname) as Cliente, idOrder as Request, orderStatus from clients c, orders o where c.idClient=idOrderClient;
-
-insert into orders (idOrderClient, orderStatus, orderDescription, sendValue, paymentCash) values
-						(2, default, "compra via aplicativo", null, 1);
-
-select idClient, count(*) from clients c, orders o 
-where c.idClient=idOrderClient
-group by idClient;
-
-select * from clients left outer join orders on idClient=idOrderClient;
